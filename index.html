@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@10.0.2/dist/sweetalert2.min.css">  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+  
+  <style>
+  #app{
+      background-color:#CFD8DC;      
+  }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <v-app>
+      <v-main>   
+       <!--<h2 class="text-center">CRUD usando APIREST con Node JS</h2>-->
+       <!-- Botón CREAR -->                
+        <v-card class="mx-auto mt-5" color="transparent" max-width="1280" elevation="0">            
+        <v-btn class="mx-2" fab dark color="#E040FB" @click="formNuevo()"><v-icon dark>mdi-plus</v-icon></v-btn>           
+        <!-- Tabla y formulario -->
+        <v-simple-table class="mt-5">
+            <template v-slot:default>
+                <tbody>
+                    <tr v-for="product in products" :key="product.id">
+                    <td>{{ product.id }}</td>
+                    <td>{{ product.asesor }}</td>
+                    <td>{{ product.numclientes }}</td>
+                    <td>{{ product.pedidos}}</td>
+                    <td>{{ product.producto}}</td>
+                    <td>{{ product.cantidad}}</td>
+                    <td>{{ product.valor}}</td>
+                    <td>{{ product.estado}}</td>
+                    <td>
+                        <v-btn class="pink" dark small fab  @click="formEditar(product.id, product.asesor, product.numclientes, product.pedidos, product.producto, product.cantidad, product.valor, product.estado)"><v-icon>mdi-pencil</v-icon></v-btn>
+                        <v-btn class="error" fab dark small @click="borrar(product.id)"><v-icon>mdi-delete</v-icon></v-btn>
+                    </td>
+                    </tr>
+                </tbody>
+            </template>
+        </v-simple-table>
+        </v-card>        
+      <!-- Componente de Diálogo para CREAR y EDITAR -->
+      <v-dialog v-model="dialog" max-width="500">        
+        <v-card>
+          <v-card-title class="purple darken-4 white--text">Artículo</v-card-title>    
+          <v-card-text>            
+            <v-form>             
+              <v-container>
+                <v-row>
+                  <input v-model="product.id" hidden></input>
+                  <v-col cols="12" md="4">
+                    <v-text-field v-model="product.asesor" label="Asesor" solo required>{{product.asesor}}</v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field v-model="product.numclientes" label="Numero clientes" type="number" solo required></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field v-model="product.pedidos" label="Pedidos" type="number" solo required></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field v-model="product.producto" label="Producto" solo required>{{product.asesor}}</v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field v-model="product.cantidad" label="Cantidad" type="number" solo required></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field v-model="product.valor" label="Valor" type="number" prefix="$" solo required></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field v-model="product.estado" label="Estado" solo required>{{product.estado}}</v-text-field>
+                  </v-col>
+                </v-row>
+              </v-container>            
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn @click="dialog=false" color="blue-grey" dark>Cancelar</v-btn>
+            <v-btn @click="guardar()" onclick="alert('Se guardaron los datos!')" type="submit" color="purple accent-3" dark>Guardar</v-btn>
+          </v-card-actions>
+          </v-form>
+        </v-card>
+      </v-dialog>
+      </v-main>
+    </v-app>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js" integrity="sha512-nqIFZC8560+CqHgXKez61MI0f9XSTKLkm0zFVm/99Wt0jSTZ7yeeYwbzyl0SGn/s8Mulbdw+ScCG41hmO2+FKw==" crossorigin="anonymous"></script>
+ 
+
+  <script>
+    let url = 'http://127.0.0.1:8000/api/products';
+    new Vue({
+      el: '#app',
+      vuetify: new Vuetify(),
+       data() {
+        return {            
+            products: [],
+            dialog: false,
+            operacion: '',            
+            product:{
+                id: null,
+                    asesor:'',
+                    numclientes:'', 
+                     pedidos:'',
+                   producto:'',
+                    cantidad:'',
+                    valor:'',
+                   estado:'',
+            }          
+        }
+       },
+
+       created(){               
+            this.mostrar()
+       },  
+       methods:{          
+            //MÉTODOS PARA EL CRUD
+            mostrar:function(){
+              axios.get(url)
+              .then(response =>{
+                this.products = response.data;                   
+              })
+            },
+            crear:function(){
+                let parametros = {asesor:this.product.asesor, numclientes:this.product.numclientes, pedidos:this.product.pedidos, producto:this.product.producto, cantidad:this.product.cantidad, valor:this.product.valor, estado:this.product.estado };                
+                axios.post(url, parametros)
+                .then(response =>{
+                  this.mostrar();
+                });     
+                    this.product.asesor="";
+                     this.product.numclientes="";
+                     this.product.pedidos="";
+                    this.product.producto="";
+                     this.product.cantidad="";
+                     this.product.valor="";
+                    this.product.estado="";
+            },                        
+            //Botones y formularios
+            guardar:function(){
+              if(this.operacion=='crear'){
+                this.crear();                
+              }
+              if(this.operacion=='editar'){ 
+                this.editar();                           
+              }
+              this.dialog=false;                        
+            }, 
+            formNuevo:function () {
+              this.dialog=true;
+              this.operacion='crear';
+              this.product.asesor="";
+                     this.product.numclientes="";
+                     this.product.pedidos="";
+                    this.product.producto="";
+                     this.product.cantidad="";
+                     this.product.valor="";
+                    this.product.estado="";
+            },
+            formEditar:function(id, dasesor, numclientes, pedidos, producto, cantidad, valor, estado){              
+              this.product.id = id;
+              this.product.asesor="";
+                     this.product.numclientes="";
+                     this.product.pedidos="";
+                    this.product.producto="";
+                     this.product.cantidad="";
+                     this.product.valor="";
+                    this.product.estado="";                  
+              this.dialog=true;                            
+              this.operacion='editar';
+            }
+       }  
+       
+       
+
+
+    });
+    
+
+
+  </script>
+</body>
+</html> 
